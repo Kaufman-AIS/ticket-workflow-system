@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "paca": {
+      "command": "npx",
+      "args": ["-y", "@paca-ai/paca-mcp"],
+      "env": {
+        "PACA_API_KEY": "REPLACE_ME",
+        "PACA_API_URL": "https://paca.kaufman-ais.com"
+      }
+    }
+  }
+}
