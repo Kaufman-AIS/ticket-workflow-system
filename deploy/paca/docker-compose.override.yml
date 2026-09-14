@@ -1,12 +1,9 @@
 # Used with the official release compose from:
 # https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml
 #
-# Release v0.16+: gateway service is `gateway` (Caddy image); built-in agent
-# is `agent-runner` (not `ai-agent` / `caddy`).
+# Release v0.16+: gateway service is `gateway` (Caddy image).
+# Suppress the built-in agent with: --scale agent-runner=0
 services:
   gateway:
-    ports:
+    ports: !override
       - "127.0.0.1:8090:80"
-  agent-runner:
-    profiles:
-      - donotstart

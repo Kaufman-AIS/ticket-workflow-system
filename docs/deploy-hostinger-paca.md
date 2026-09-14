@@ -60,7 +60,7 @@ Never commit `.env` to git.
 ## 5. Start Paca (no built-in AI agent)
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml --env-file .env up -d --scale ai-agent=0
+docker compose -f docker-compose.yml -f docker-compose.override.yml --env-file .env up -d --scale agent-runner=0
 ```
 
 Verify containers are healthy:
@@ -107,7 +107,7 @@ Optional: run `scripts/smoke_paca_health.sh` after Task 3 is merged.
 
 ## Lean deploy notes
 
-- **`ai-agent` is scaled to zero** — no Goose sandboxes or Paca-native LLM on this VPS.
+- **`agent-runner` is scaled to zero** — no Goose sandboxes or Paca-native LLM on this VPS.
 - **OpenAI** is used only through existing Onyx/Haystack agents, not Paca’s LLM settings.
 - Clients integrate via `@paca-ai/paca-mcp` and the Paca REST API.
 - Paca still runs Postgres, Valkey, and MinIO; confirm VPS memory/disk headroom before go-live.
