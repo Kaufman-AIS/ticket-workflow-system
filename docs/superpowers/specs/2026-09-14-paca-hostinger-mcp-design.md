@@ -2,7 +2,7 @@
 
 Date: 2026-09-14  
 Repo: [Kaufman-AIS/ticket-workflow-system](https://github.com/Kaufman-AIS/ticket-workflow-system)  
-Status: Approved for implementation planning (pending user review of this file)
+Status: Approved — implementation plan at `docs/superpowers/plans/2026-09-14-paca-hostinger-mcp.md`
 
 ## Goal
 
@@ -116,12 +116,12 @@ Agents (via Haystack tools and/or Onyx tools, also usable from Cursor) claim iss
 
 Implementation proceeds in that order even though this design covers all four.
 
-## Open items (resolve at plan/implement time)
+## Open items (resolved in plan)
 
-- Exact Paca public hostname / DNS.  
-- Whether Haystack talks to MCP via stdio sidecar, HTTP MCP bridge, or REST wrappers generated from MCP tool list.  
-- Mapping of intake fields → Paca project/task/doc schema.  
-- Whether Google Tasks remain in parallel with Paca or are superseded for new work.
+- Hostname: `paca.kaufman-ais.com` → `187.124.175.57`.  
+- Haystack: Python REST `PacaClient` mirroring MCP task/doc ops; Cursor/Onyx use official MCP.  
+- Intake field mapping: documented in plan Task 9 / `docs/intake-paca-mapping.md`.  
+- Google Tasks: remain parallel (Paca additive).
 
 ## Related repos (do not merge)
 
