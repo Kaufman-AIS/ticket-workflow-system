@@ -1,0 +1,59 @@
+name: Deploy Paca
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-paca
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync deploy artifacts to VPS
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          rsync -avz \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o LogLevel=ERROR" \
+            deploy/ "${SSH_USER}@${SSH_HOST}:/opt/ticket-workflow-system/deploy/"
+
+      - name: Start Paca stack on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+            DEPLOY=/opt/ticket-workflow-system/deploy
+            PACA=/opt/ticket-workflow-system/paca
+            mkdir -p "$PACA"
+            cp -a "$DEPLOY/paca/." "$PACA/"
+            if [[ ! -f "$PACA/docker-compose.yml" ]]; then
+              curl -fsSL -o "$PACA/docker-compose.yml" \
+                https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml
+            fi
+            if [[ ! -f "$PACA/.env" ]]; then
+              echo "Missing $PACA/.env — copy from .env.example and fill secrets on the VPS first." >&2
+              exit 1
+            fi
+            cd "$PACA"
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.override.yml \
+              --env-file .env \
+              up -d --scale ai-agent=0
