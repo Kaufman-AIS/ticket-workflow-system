@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "ticket-workflow-system"
 version = "0.1.0"
@@ -17,6 +21,9 @@ dev = [
   "pytest>=8.0",
   "pytest-httpx>=0.30",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["integrations"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
