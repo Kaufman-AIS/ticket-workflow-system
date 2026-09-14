@@ -1,12 +1,7 @@
 # ticket-workflow-system
 
-Paca-based ticket/board workflows on the Hostinger VPS, connected to **Haystack**, **Cursor**, and **Onyx** via MCP. **Witdem** observes production runs. OpenAI stays in the existing agent stack (not Paca’s built-in LLM).
-
-## Design
-
-See [docs/superpowers/specs/2026-09-14-paca-hostinger-mcp-design.md](docs/superpowers/specs/2026-09-14-paca-hostinger-mcp-design.md).
-
-## Related
-
-- Upstream: [Paca-AI/paca](https://github.com/Paca-AI/paca)
-- Existing Hostinger stack: Onyx / Haystack / Witdem (separate deploy repo)
+- [Design spec](docs/superpowers/specs/2026-09-14-paca-hostinger-mcp-design.md)
+- [Implementation plan](docs/superpowers/plans/2026-09-14-paca-hostinger-mcp.md)
+- [Hostinger deploy guide](docs/deploy-hostinger-paca.md)
+- [Cursor MCP (public URL)](docs/cursor-mcp.md)
+- [Cursor MCP via SSH tunnel](docs/cursor-mcp-tunnel.md)
