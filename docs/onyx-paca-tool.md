@@ -23,6 +23,9 @@ Onyx custom tools are defined via **OpenAPI** specs. For v1, wire tools that cal
 | List tasks | `GET` | `/api/v1/tasks` | `project_id` query param |
 | Create document | `POST` | `/api/v1/documents` | `project_id`, `title`, `content` (markdown) |
 | Update document | `PATCH` | `/api/v1/documents/{document_id}` | `title`, `content` |
+| Claim task | `PATCH` | `/api/v1/tasks/{task_id}` | `assignee_id` (string user/agent id) |
+| Set status | `PATCH` | `/api/v1/tasks/{task_id}` | `status` |
+| Add comment | `POST` | `/api/v1/tasks/{task_id}/comments` | `body` |
 
 Confirm paths against live OpenAPI on the Paca instance before go-live (Task 7). If paths differ, update `PacaClient` and this doc together.
 
@@ -77,7 +80,55 @@ Verify in the Paca web UI and in Witdem run evidence if the turn is proxied.
 
 ## Board-member helpers (Task 10)
 
-Task 10 adds `integrations/paca_client/board.py` (`claim_task`, `set_status`, `add_comment`) and extends this doc with OpenAPI snippets for those three tools once live API paths are confirmed.
+Python helpers in [`integrations/paca_client/board.py`](../integrations/paca_client/board.py) wrap `PacaClient` for agent-as-board-member flows:
+
+| Helper | Client call | OpenAPI-oriented note |
+| --- | --- | --- |
+| `claim_task(client, task_id, assignee_id)` | `PATCH /api/v1/tasks/{task_id}` with JSON `{"assignee_id": "..."}` | Field name is **`assignee_id`** (not `assignee`). Map Onyx tool param → that property. |
+| `set_status(client, task_id, status)` | `PATCH /api/v1/tasks/{task_id}` with JSON `{"status": "..."}` | Same update-task operation; expose a narrow tool that only allows `status`. |
+| `add_comment(client, task_id, body)` | `POST /api/v1/tasks/{task_id}/comments` with JSON `{"body": "..."}` | Uses `PacaClient.add_task_comment`; separate path from PATCH. |
+
+Example OpenAPI operation stubs (paths relative to Paca server URL):
+
+```yaml
+paths:
+  /api/v1/tasks/{task_id}:
+    patch:
+      operationId: updateTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assignee_id: { type: string, description: "User or agent id to claim the task" }
+                status: { type: string }
+  /api/v1/tasks/{task_id}/comments:
+    post:
+      operationId: addTaskComment
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string }
+```
+
+Live Onyx tool registration / chat smoke on the VPS is deferred (Tasks 7–8 / remaining Task 10 ops).
 
 ## Secrets
 

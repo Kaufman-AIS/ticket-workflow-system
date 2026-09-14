@@ -46,6 +46,9 @@ class PacaClient:
         data = self._request("PATCH", f"/api/v1/tasks/{task_id}", json=fields)
         return Task.model_validate(data)
 
+    def add_task_comment(self, task_id: str, body: str) -> dict:
+        return self._request("POST", f"/api/v1/tasks/{task_id}/comments", json={"body": body})
+
     def list_tasks(self, project_id: str) -> list[Task]:
         data = self._request("GET", "/api/v1/tasks", params={"project_id": project_id})
         items = data if isinstance(data, list) else data.get("items", data.get("tasks", []))
