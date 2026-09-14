@@ -1,7 +1,7 @@
 """Board-member helpers wrapping PacaClient task operations.
 
-Claim uses the PATCH field ``assignee_id`` (not ``assignee``) so OpenAPI tools
-and Haystack callers stay aligned with the Paca REST schema.
+Claim maps to ``assignee_ids`` via ``assignee_id`` on ``update_task``.
+Status updates use ``status_id`` (Paca status UUIDs, not free-form names).
 """
 
 from __future__ import annotations
@@ -10,14 +10,13 @@ from integrations.paca_client.client import PacaClient
 from integrations.paca_client.models import Task
 
 
-def claim_task(client: PacaClient, task_id: str, assignee_id: str) -> Task:
-    """Assign ``task_id`` to ``assignee_id`` via ``update_task(..., assignee_id=...)``."""
-    return client.update_task(task_id, assignee_id=assignee_id)
+def claim_task(client: PacaClient, project_id: str, task_id: str, assignee_id: str) -> Task:
+    return client.update_task(project_id, task_id, assignee_id=assignee_id)
 
 
-def set_status(client: PacaClient, task_id: str, status: str) -> Task:
-    return client.update_task(task_id, status=status)
+def set_status(client: PacaClient, project_id: str, task_id: str, status_id: str) -> Task:
+    return client.update_task(project_id, task_id, status_id=status_id)
 
 
-def add_comment(client: PacaClient, task_id: str, body: str) -> dict:
-    return client.add_task_comment(task_id, body)
+def add_comment(client: PacaClient, project_id: str, task_id: str, body: str) -> dict:
+    return client.add_task_comment(project_id, task_id, body)
