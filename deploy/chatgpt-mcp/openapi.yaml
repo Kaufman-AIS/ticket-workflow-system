@@ -1,0 +1,80 @@
+openapi: 3.1.0
+info:
+  title: Paca GPT Action
+  version: 1.0.0
+  description: >-
+    GPT Action bridge for the complete Paca MCP toolset. First call method
+    list_tools to discover the available tools and their input schemas. Then
+    call any returned tool by using its exact name as method and its arguments
+    object as params. This includes reading and writing projects, tasks,
+    epics, views, comments, documents, sprints, GitHub links and plugin tools.
+servers:
+  - url: https://paca.kaufman-ais.com
+paths:
+  /chatgpt/rpc:
+    post:
+      operationId: pacaMcp
+      summary: Discover or call a Paca MCP tool
+      description: >-
+        JSON-RPC-style gateway. Use method list_tools first. For a tool call,
+        set method to the exact MCP tool name and params to the tool arguments.
+        The bridge forwards the call to the authenticated Paca MCP server.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RpcRequest'
+      responses:
+        '200':
+          description: JSON-RPC result or error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RpcResponse'
+        '400':
+          description: Invalid JSON-RPC request
+        '401':
+          description: Invalid bearer token
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    RpcRequest:
+      type: object
+      required: [jsonrpc, id, method]
+      properties:
+        jsonrpc:
+          type: string
+          const: '2.0'
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+        method:
+          type: string
+          description: Exact MCP tool name, or list_tools for discovery.
+        params:
+          type: object
+          additionalProperties: true
+    RpcResponse:
+      type: object
+      required: [jsonrpc, id]
+      properties:
+        jsonrpc:
+          type: string
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: 'null'
+        result:
+          type: object
+          additionalProperties: true
+        error:
+          type: object
+          additionalProperties: true

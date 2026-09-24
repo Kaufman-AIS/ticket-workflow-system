@@ -22,6 +22,7 @@ docker run -d --name paca-chatgpt-mcp --restart unless-stopped \
   -e PACA_API_URL \
   -e PACA_API_KEY \
   -e OWNER_TOKEN \
+  -e CHATGPT_ACTION_TOKEN \
   -e RESOURCE_NAME="${RESOURCE_NAME:-Paca}" \
   -e GATEWAY_HOST=0.0.0.0 \
   -e GATEWAY_PORT=8771 \

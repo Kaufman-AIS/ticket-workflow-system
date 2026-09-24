@@ -6,7 +6,20 @@ import sys
 path = Path(sys.argv[1] if len(sys.argv) > 1 else "/opt/ticket-workflow-system/paca/caddy/Caddyfile")
 text = path.read_text()
 if "paca-chatgpt-mcp:8771" in text:
-    print("already patched")
+    if "/chatgpt/" not in text:
+        marker = "\t# -- Web application (SPA) -----------------------------------------------------"
+        routes = """\t# -- ChatGPT GPT Action bridge -----------------------------------------------
+\thandle /chatgpt/ {
+\t\treverse_proxy paca-chatgpt-mcp:8771
+\t}
+
+"""
+        if marker not in text:
+            raise SystemExit(f"marker not found in {path}")
+        path.write_text(text.replace(marker, routes + marker, 1))
+        print(f"added GPT Action routes to {path}")
+    else:
+        print("already patched")
     raise SystemExit(0)
 
 marker = "\t# -- Web application (SPA) -----------------------------------------------------"

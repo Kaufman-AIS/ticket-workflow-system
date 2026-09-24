@@ -21,6 +21,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { createActionRouter } from './chatgpt-action.mjs';
 
 // ---------------------------------------------------------------- config ---
 
@@ -71,6 +72,8 @@ const ownerToken = secret('OWNER_TOKEN');
 if (ownerToken.length < 32) {
   die('OWNER_TOKEN must be at least 32 characters. Generate one with: openssl rand -hex 32');
 }
+
+const chatgptActionToken = secret('CHATGPT_ACTION_TOKEN');
 
 // Sent upstream in place of the caller's OAuth token. Omit if your MCP server
 // has no auth of its own — but prefer giving it one, so the gateway is not the
@@ -138,6 +141,10 @@ const { requireBearerAuth } = await importResolved(
 const { checkResourceAllowed, resourceUrlFromServerUrl } = await importResolved(
   '@modelcontextprotocol/sdk/shared/auth-utils.js',
 );
+const { Client } = await importResolved('@modelcontextprotocol/sdk/client/index.js');
+const { StreamableHTTPClientTransport } = await importResolved(
+  '@modelcontextprotocol/sdk/client/streamableHttp.js',
+);
 const { SingleUserOAuthProvider } = await import(
   pathToFileURL(path.join(devspaceRoot, 'dist', 'oauth-provider.js')).href
 );
@@ -175,8 +182,14 @@ oauthProvider.authorize = async (client, params, res) => {
     return redirectUrl.href;
   };
   res.redirect = (statusOrUrl, maybeUrl) => {
-    if (typeof statusOrUrl === 'number') return redirect(statusOrUrl, addIssuer(maybeUrl));
-    return redirect(addIssuer(statusOrUrl));
+    const location = typeof statusOrUrl === 'number' ? maybeUrl : statusOrUrl;
+    const redirectUrl = new URL(addIssuer(location));
+    console.log(
+      `[gateway] authorize redirect host=${redirectUrl.host} path=${redirectUrl.pathname}` +
+      ` state=${redirectUrl.searchParams.has('state')} iss=${redirectUrl.searchParams.has('iss')}`,
+    );
+    if (typeof statusOrUrl === 'number') return redirect(statusOrUrl, redirectUrl.href);
+    return redirect(redirectUrl.href);
   };
   try {
     return await providerAuthorize(client, params, res);
@@ -201,6 +214,40 @@ const app = express();
 app.set('trust proxy', process.env.TRUST_PROXY ?? 'loopback');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: cfg.bodyLimit }));
+
+// GPT Actions cannot use the browser OAuth handshake used by remote MCP.
+// This private adapter keeps the Action token separate from the owner token,
+// then calls the local MCP endpoint with a normal MCP SDK client. All Paca
+// tools remain available dynamically through the MCP tool catalogue.
+let actionClientPromise;
+const getActionClient = async () => {
+  actionClientPromise ??= (async () => {
+    const client = new Client({ name: 'paca-chatgpt-action', version: '1.0.0' });
+    const transport = new StreamableHTTPClientTransport(
+      new URL(`http://${cfg.upstreamHost}:${cfg.upstreamPort}${cfg.upstreamPath}`),
+    );
+    await client.connect(transport);
+    return client;
+  })().catch((error) => {
+    actionClientPromise = undefined;
+    throw error;
+  });
+  return actionClientPromise;
+};
+
+const actionClient = await getActionClient();
+app.use('/chatgpt/rpc', createActionRouter({ token: chatgptActionToken, client: actionClient }));
+app.get('/chatgpt/health', async (_req, res) => {
+  try {
+    const { tools = [] } = await actionClient.listTools();
+    res.json({ ok: true, tools: tools.length });
+  } catch (error) {
+    res.status(503).json({ ok: false, error: error.message });
+  }
+});
+app.get('/chatgpt/openapi.yaml', (_req, res) => {
+  res.type('text/yaml').send(fs.readFileSync(path.join(process.cwd(), 'openapi.yaml'), 'utf8'));
+});
 
 // Advertise issuer identification required by current ChatGPT OAuth clients.
 app.use((req, res, next) => {

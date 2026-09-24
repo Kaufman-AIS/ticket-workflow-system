@@ -5,6 +5,7 @@ set -eu
 : "${PACA_API_URL:=https://paca.kaufman-ais.com}"
 : "${PUBLIC_BASE_URL:?PUBLIC_BASE_URL is required}"
 : "${OWNER_TOKEN:?OWNER_TOKEN is required}"
+: "${CHATGPT_ACTION_TOKEN:?CHATGPT_ACTION_TOKEN is required}"
 
 mkdir -p "${STATE_DIR:-/data/gateway-state}"
 
