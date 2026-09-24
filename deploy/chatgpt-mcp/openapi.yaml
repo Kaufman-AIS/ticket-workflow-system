@@ -11,6 +11,50 @@ info:
 servers:
   - url: https://paca.kaufman-ais.com
 paths:
+  /chatgpt/list_views:
+    post:
+      operationId: listViews
+      summary: List Paca views
+      description: List the views for a Paca project. Pass the Paca project ID directly as projectId.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+      responses:
+        '200':
+          description: Paca view list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/McpResult'
+        '401':
+          description: Invalid bearer token
+  /chatgpt/list_tasks:
+    post:
+      operationId: listTasks
+      summary: List Paca tasks
+      description: List tasks for a Paca project. Pass the Paca project ID directly as projectId.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListTasksRequest'
+      responses:
+        '200':
+          description: Paca task list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/McpResult'
+        '401':
+          description: Invalid bearer token
   /chatgpt/rpc:
     post:
       operationId: pacaMcp
@@ -44,6 +88,36 @@ components:
       type: http
       scheme: bearer
   schemas:
+    ProjectRequest:
+      type: object
+      required: [projectId]
+      properties:
+        projectId:
+          type: string
+          description: Paca project ID
+        context:
+          type: string
+        sprintId:
+          type: string
+      additionalProperties: true
+    ListTasksRequest:
+      type: object
+      required: [projectId]
+      properties:
+        projectId:
+          type: string
+          description: Paca project ID
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 200
+        page:
+          type: integer
+          minimum: 1
+      additionalProperties: true
+    McpResult:
+      type: object
+      additionalProperties: true
     RpcRequest:
       type: object
       required: [jsonrpc, id, method]

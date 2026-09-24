@@ -21,7 +21,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { createActionRouter } from './chatgpt-action.mjs';
+import { createActionRouter, createToolRouter } from './chatgpt-action.mjs';
 
 // ---------------------------------------------------------------- config ---
 
@@ -237,8 +237,17 @@ const getActionClient = async () => {
 
 const actionClient = await getActionClient();
 const actionRouter = createActionRouter({ token: chatgptActionToken, client: actionClient });
+const explicitActionRouters = new Map(
+  ['list_views', 'list_tasks'].map((toolName) => [
+    `/${toolName}`,
+    createToolRouter({ token: chatgptActionToken, client: actionClient, toolName }),
+  ]),
+);
 app.use('/chatgpt', async (req, res, next) => {
   if (req.path === '/rpc') return actionRouter(req, res, next);
+  if (req.method === 'POST' && explicitActionRouters.has(req.path)) {
+    return explicitActionRouters.get(req.path)(req, res, next);
+  }
   if (req.method === 'GET' && req.path === '/health') {
     try {
       const { tools = [] } = await actionClient.listTools();

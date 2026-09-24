@@ -15,6 +15,33 @@ const sameSecret = (provided, expected) => {
 
 const send = (res, status, body) => res.status(status).json(body);
 
+const authenticate = (req, res, token) => {
+  const authorization = req.headers?.authorization ?? '';
+  const provided = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (sameSecret(provided, token)) return true;
+  res.setHeader?.('WWW-Authenticate', 'Bearer');
+  send(res, 401, { error: 'unauthorized' });
+  return false;
+};
+
+/** Create a GPT Action endpoint for one MCP tool with a first-class JSON body. */
+export const createToolRouter = ({ token, client, toolName }) => {
+  if (!token || token.length < 32) throw new Error('CHATGPT_ACTION_TOKEN must be at least 32 characters');
+  if (!client) throw new Error('an MCP client is required');
+  if (!toolName) throw new Error('toolName is required');
+
+  return async (req, res) => {
+    try {
+      if (!authenticate(req, res, token)) return;
+      const result = await client.callTool({ name: toolName, arguments: req.body ?? {} });
+      return send(res, 200, result);
+    } catch (error) {
+      console.error(`[chatgpt-action:${toolName}] ${error?.stack ?? error}`);
+      return send(res, 502, { error: 'MCP tool call failed', tool: toolName });
+    }
+  };
+};
+
 /**
  * Expose the connected Paca MCP tools through the small JSON-RPC shape that
  * GPT Actions can call. The returned function is also an Express middleware.
@@ -31,12 +58,7 @@ export const createActionRouter = ({ token, client }) => {
 
   const handle = async (req, res, next) => {
     try {
-      const authorization = req.headers?.authorization ?? '';
-      const provided = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
-      if (!sameSecret(provided, token)) {
-        res.setHeader?.('WWW-Authenticate', 'Bearer');
-        return send(res, 401, { error: 'unauthorized' });
-      }
+      if (!authenticate(req, res, token)) return;
 
       const request = req.body;
       if (!request || request.jsonrpc !== '2.0' || request.id === undefined || typeof request.method !== 'string') {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createActionRouter } from '../deploy/chatgpt-mcp/chatgpt-action.mjs';
+import { createActionRouter, createToolRouter } from '../deploy/chatgpt-mcp/chatgpt-action.mjs';
 
 const ACTION_TOKEN = 'secret-token-012345678901234567890123';
 
@@ -20,7 +20,8 @@ const request = async (router, options) => {
       setHeader(name, value) { this.headers[name.toLowerCase()] = value; },
       json(value) { resolve({ status: this.statusCode, body: value, headers: this.headers }); },
     };
-    router.handle(req, res, (error) => error ? reject(error) : resolve({ status: 404, body: null }));
+    const handler = router.handle ?? router;
+    handler(req, res, (error) => error ? reject(error) : resolve({ status: 404, body: null }));
   });
   return response;
 };
@@ -79,6 +80,18 @@ test('unwraps GPT Actions that nest tool arguments under params.params', async (
   const response = await request(router, {
     body: { jsonrpc: '2.0', id: 9, method: 'list_views', params: { params: { projectId: 'p1' } } },
   });
+  assert.equal(response.status, 200);
+  assert.deepEqual(call, { name: 'list_views', arguments: { projectId: 'p1' } });
+});
+
+test('exposes a tool as a first-class action with direct projectId input', async () => {
+  let call;
+  const router = createToolRouter({
+    token: ACTION_TOKEN,
+    toolName: 'list_views',
+    client: { async callTool(args) { call = args; return { content: [{ type: 'text', text: 'ok' }] }; } },
+  });
+  const response = await request(router, { body: { projectId: 'p1' } });
   assert.equal(response.status, 200);
   assert.deepEqual(call, { name: 'list_views', arguments: { projectId: 'p1' } });
 });
