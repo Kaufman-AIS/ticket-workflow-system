@@ -236,17 +236,21 @@ const getActionClient = async () => {
 };
 
 const actionClient = await getActionClient();
-app.use('/chatgpt/rpc', createActionRouter({ token: chatgptActionToken, client: actionClient }));
-app.get('/chatgpt/health', async (_req, res) => {
-  try {
-    const { tools = [] } = await actionClient.listTools();
-    res.json({ ok: true, tools: tools.length });
-  } catch (error) {
-    res.status(503).json({ ok: false, error: error.message });
+const actionRouter = createActionRouter({ token: chatgptActionToken, client: actionClient });
+app.use('/chatgpt', async (req, res, next) => {
+  if (req.path === '/rpc') return actionRouter(req, res, next);
+  if (req.method === 'GET' && req.path === '/health') {
+    try {
+      const { tools = [] } = await actionClient.listTools();
+      return res.json({ ok: true, tools: tools.length });
+    } catch (error) {
+      return res.status(503).json({ ok: false, error: error.message });
+    }
   }
-});
-app.get('/chatgpt/openapi.yaml', (_req, res) => {
-  res.type('text/yaml').send(fs.readFileSync(path.join(process.cwd(), 'openapi.yaml'), 'utf8'));
+  if (req.method === 'GET' && req.path === '/openapi.yaml') {
+    return res.type('text/yaml').send(fs.readFileSync(path.join(process.cwd(), 'openapi.yaml'), 'utf8'));
+  }
+  return next();
 });
 
 // Advertise issuer identification required by current ChatGPT OAuth clients.

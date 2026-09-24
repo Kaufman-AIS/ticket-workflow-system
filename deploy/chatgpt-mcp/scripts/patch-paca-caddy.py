@@ -9,7 +9,7 @@ if "paca-chatgpt-mcp:8771" in text:
     if "/chatgpt/" not in text:
         marker = "\t# -- Web application (SPA) -----------------------------------------------------"
         routes = """\t# -- ChatGPT GPT Action bridge -----------------------------------------------
-\thandle /chatgpt/ {
+\thandle /chatgpt/* {
 \t\treverse_proxy paca-chatgpt-mcp:8771
 \t}
 
