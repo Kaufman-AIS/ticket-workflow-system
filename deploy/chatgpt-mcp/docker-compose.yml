@@ -1,0 +1,40 @@
+# ChatGPT remote MCP for Paca (OAuth gateway + mcp-proxy + @paca-ai/paca-mcp)
+#
+# Joins the existing `paca_default` Docker network so Paca's Caddy can
+# reverse_proxy /mcp + OAuth discovery to this service.
+services:
+  paca-chatgpt-mcp:
+    image: node:22-bookworm-slim
+    container_name: paca-chatgpt-mcp
+    restart: unless-stopped
+    working_dir: /app
+    entrypoint: ["./entrypoint.sh"]
+    env_file:
+      - .env
+    environment:
+      GATEWAY_HOST: "0.0.0.0"
+      GATEWAY_PORT: "8771"
+      UPSTREAM_HOST: "127.0.0.1"
+      UPSTREAM_PORT: "8770"
+      UPSTREAM_PATH: "/mcp"
+      MCP_PATH: "/mcp"
+      SCOPE: "mcp"
+      RESOURCE_NAME: "Paca"
+      STATE_DIR: "/data/gateway-state"
+      TRUST_PROXY: "loopback"
+      ALLOWED_REDIRECT_HOSTS: "chatgpt.com,localhost,127.0.0.1"
+    volumes:
+      - .:/app
+      - paca-chatgpt-mcp-node_modules:/app/node_modules
+      - paca-chatgpt-mcp-state:/data
+    networks:
+      - paca_default
+    mem_limit: 512m
+
+networks:
+  paca_default:
+    external: true
+
+volumes:
+  paca-chatgpt-mcp-node_modules:
+  paca-chatgpt-mcp-state:

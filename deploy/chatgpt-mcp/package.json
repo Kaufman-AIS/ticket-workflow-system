@@ -1,0 +1,20 @@
+{
+  "name": "paca-chatgpt-mcp-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ChatGPT OAuth gateway + mcp-proxy for @paca-ai/paca-mcp",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19 <27"
+  },
+  "scripts": {
+    "start": "node gateway.mjs",
+    "proxy": "mcp-proxy --port 8770 --server stream -- paca"
+  },
+  "dependencies": {
+    "@waishnav/devspace": "^1.0.5",
+    "mcp-proxy": "^6.0.0",
+    "@paca-ai/paca-mcp": "^0.17.0"
+  }
+}

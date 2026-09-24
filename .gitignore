@@ -11,3 +11,4 @@ venv/
 secrets/
 *.pem
 .worktrees/
+deploy/chatgpt-mcp/.env

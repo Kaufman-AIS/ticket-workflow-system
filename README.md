@@ -5,3 +5,4 @@
 - [Hostinger deploy guide](docs/deploy-hostinger-paca.md)
 - [Cursor MCP (public URL)](docs/cursor-mcp.md)
 - [Cursor MCP via SSH tunnel](docs/cursor-mcp-tunnel.md)
+- [ChatGPT remote MCP (Web)](docs/chatgpt-mcp.md)
