@@ -66,3 +66,19 @@ test('returns a JSON-RPC method-not-found error for unknown tools', async () => 
   assert.equal(response.status, 200);
   assert.equal(response.body.error.code, -32601);
 });
+
+test('unwraps GPT Actions that nest tool arguments under params.params', async () => {
+  let call;
+  const router = createActionRouter({
+    token: ACTION_TOKEN,
+    client: {
+      async listTools() { return { tools: [{ name: 'list_views' }] }; },
+      async callTool(args) { call = args; return { content: [] }; },
+    },
+  });
+  const response = await request(router, {
+    body: { jsonrpc: '2.0', id: 9, method: 'list_views', params: { params: { projectId: 'p1' } } },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(call, { name: 'list_views', arguments: { projectId: 'p1' } });
+});

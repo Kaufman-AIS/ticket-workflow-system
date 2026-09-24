@@ -52,10 +52,20 @@ export const createActionRouter = ({ token, client }) => {
         return send(res, 200, jsonRpcError(request.id, -32601, `Unknown MCP tool: ${request.method}`));
       }
 
-      const result = await client.callTool({
-        name: request.method,
-        arguments: request.params ?? {},
-      });
+    const rawArguments = request.params ?? {};
+    const toolArguments =
+      rawArguments &&
+      typeof rawArguments === 'object' &&
+      rawArguments.params &&
+      typeof rawArguments.params === 'object' &&
+      Object.keys(rawArguments).length === 1
+        ? rawArguments.params
+        : rawArguments;
+
+    const result = await client.callTool({
+      name: request.method,
+      arguments: toolArguments,
+    });
       return send(res, 200, { jsonrpc: '2.0', id: request.id, result });
     } catch (error) {
       if (error?.code === -32600 || error?.code === -32601) {
