@@ -117,6 +117,20 @@ components:
       additionalProperties: true
     McpResult:
       type: object
+      properties:
+        content:
+          type: array
+          description: MCP result content blocks
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              text:
+                type: string
+            additionalProperties: true
+        isError:
+          type: boolean
       additionalProperties: true
     RpcRequest:
       type: object
