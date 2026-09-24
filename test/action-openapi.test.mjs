@@ -22,3 +22,13 @@ test('can split the catalogue into importer-safe groups of at most 30 operations
   assert.equal(Object.keys(buildActionOpenApi(tools, { start: 30, limit: 30 }).paths).length, 30);
   assert.equal(Object.keys(buildActionOpenApi(tools, { start: 60, limit: 30 }).paths).length, 18);
 });
+
+test('adds items to incomplete array schemas from Paca', () => {
+  const document = buildActionOpenApi([{ name: 'create_automation', inputSchema: {
+    type: 'object',
+    properties: { nodes: { type: 'array' }, edges: { type: 'array' } },
+  } }]);
+  const properties = document.paths['/chatgpt/tools/create_automation'].post.requestBody.content['application/json'].schema.properties;
+  assert.deepEqual(properties.nodes.items, { type: 'object', properties: {}, additionalProperties: true });
+  assert.deepEqual(properties.edges.items, { type: 'object', properties: {}, additionalProperties: true });
+});

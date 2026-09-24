@@ -1,14 +1,25 @@
 const safeOperationId = (name) => `paca_${name.replace(/[^A-Za-z0-9_]/g, '_')}`;
 
-const requestSchema = (schema) => {
+const normalizeSchema = (schema) => {
   if (!schema || typeof schema !== 'object') {
     return { type: 'object', properties: {}, additionalProperties: true };
   }
   const copy = structuredClone(schema);
   delete copy.$schema;
-  if (copy.type === 'object' && !copy.properties) copy.properties = {};
+  if (copy.type === 'object') {
+    copy.properties ??= {};
+    for (const [name, property] of Object.entries(copy.properties)) {
+      copy.properties[name] = normalizeSchema(property);
+    }
+  }
+  if (copy.type === 'array') copy.items = normalizeSchema(copy.items);
+  for (const key of ['oneOf', 'anyOf', 'allOf']) {
+    if (Array.isArray(copy[key])) copy[key] = copy[key].map(normalizeSchema);
+  }
   return copy;
 };
+
+const requestSchema = (schema) => normalizeSchema(schema);
 
 export const buildActionOpenApi = (tools = [], { start = 0, limit = 30, title = 'Paca GPT Actions' } = {}) => {
   const paths = {};
