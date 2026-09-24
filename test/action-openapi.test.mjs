@@ -15,3 +15,10 @@ test('generates one explicit GPT Action for every Paca tool', () => {
   assert.deepEqual(operation.requestBody.content['application/json'].schema.required, ['projectId', 'title']);
   assert.ok(document.components.schemas.McpResult.properties.content);
 });
+
+test('can split the catalogue into importer-safe groups of at most 30 operations', () => {
+  const tools = Array.from({ length: 78 }, (_, index) => ({ name: `tool_${index}`, inputSchema: { type: 'object', properties: {} } }));
+  assert.equal(Object.keys(buildActionOpenApi(tools, { start: 0, limit: 30 }).paths).length, 30);
+  assert.equal(Object.keys(buildActionOpenApi(tools, { start: 30, limit: 30 }).paths).length, 30);
+  assert.equal(Object.keys(buildActionOpenApi(tools, { start: 60, limit: 30 }).paths).length, 18);
+});

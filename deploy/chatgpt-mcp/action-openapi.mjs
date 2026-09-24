@@ -10,9 +10,9 @@ const requestSchema = (schema) => {
   return copy;
 };
 
-export const buildActionOpenApi = (tools = []) => {
+export const buildActionOpenApi = (tools = [], { start = 0, limit = 30, title = 'Paca GPT Actions' } = {}) => {
   const paths = {};
-  for (const tool of tools) {
+  for (const tool of tools.slice(start, start + limit)) {
     if (!tool?.name) continue;
     paths[`/chatgpt/tools/${encodeURIComponent(tool.name)}`] = {
       post: {
@@ -38,7 +38,7 @@ export const buildActionOpenApi = (tools = []) => {
   return {
     openapi: '3.1.0',
     info: {
-      title: 'Paca GPT Actions',
+      title,
       version: '2.0.0',
       description: 'Explicit GPT Actions generated from the live Paca MCP tool catalogue.',
     },

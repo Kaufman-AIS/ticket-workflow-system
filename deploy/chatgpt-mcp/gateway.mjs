@@ -270,7 +270,19 @@ app.use('/chatgpt', async (req, res, next) => {
     }
   }
   if (req.method === 'GET' && req.path === '/openapi.yaml') {
-    return res.type('application/json').send(JSON.stringify(buildActionOpenApi(actionTools)));
+    return res.type('application/json').send(JSON.stringify(buildActionOpenApi(actionTools, {
+      start: 0,
+      limit: 30,
+      title: 'Paca GPT Actions 1 of 3',
+    })));
+  }
+  if (req.method === 'GET' && /^\/openapi-[123]\.yaml$/.test(req.path)) {
+    const group = Number(req.path.match(/^\/openapi-([123])\.yaml$/)[1]) - 1;
+    return res.type('application/json').send(JSON.stringify(buildActionOpenApi(actionTools, {
+      start: group * 30,
+      limit: 30,
+      title: `Paca GPT Actions ${group + 1} of 3`,
+    })));
   }
   return next();
 });
