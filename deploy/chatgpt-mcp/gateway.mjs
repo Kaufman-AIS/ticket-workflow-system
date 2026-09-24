@@ -145,6 +145,7 @@ const { SingleUserOAuthProvider } = await import(
 // ------------------------------------------------------------------ setup ---
 
 const mcpUrl = new URL(cfg.mcpPath, cfg.publicBaseUrl);
+const issuerUrl = new URL(cfg.publicBaseUrl);
 const resourceServerUrl = resourceUrlFromServerUrl(mcpUrl);
 
 fs.mkdirSync(cfg.stateDir, { recursive: true });
@@ -160,6 +161,29 @@ const oauthProvider = new SingleUserOAuthProvider(
   mcpUrl,
   cfg.stateDir,
 );
+
+// ChatGPT uses the stable OAuth callback only when the authorization server
+// advertises RFC 9207 issuer identification. The MCP SDK version bundled by
+// DevSpace does not expose this metadata field or append `iss` to successful
+// authorization responses, so add both pieces at the gateway boundary.
+const providerAuthorize = oauthProvider.authorize.bind(oauthProvider);
+oauthProvider.authorize = async (client, params, res) => {
+  const redirect = res.redirect.bind(res);
+  const addIssuer = (location) => {
+    const redirectUrl = new URL(location);
+    redirectUrl.searchParams.set('iss', issuerUrl.href);
+    return redirectUrl.href;
+  };
+  res.redirect = (statusOrUrl, maybeUrl) => {
+    if (typeof statusOrUrl === 'number') return redirect(statusOrUrl, addIssuer(maybeUrl));
+    return redirect(addIssuer(statusOrUrl));
+  };
+  try {
+    return await providerAuthorize(client, params, res);
+  } finally {
+    res.redirect = redirect;
+  }
+};
 
 const bearerAuth = requireBearerAuth({
   verifier: oauthProvider,
@@ -177,6 +201,15 @@ const app = express();
 app.set('trust proxy', process.env.TRUST_PROXY ?? 'loopback');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: cfg.bodyLimit }));
+
+// Advertise issuer identification required by current ChatGPT OAuth clients.
+app.use((req, res, next) => {
+  if (req.method === 'GET' && req.path === '/.well-known/oauth-authorization-server') {
+    const json = res.json.bind(res);
+    res.json = (body) => json({ ...body, authorization_response_iss_parameter_supported: true });
+  }
+  next();
+});
 
 app.use(
   mcpAuthRouter({
