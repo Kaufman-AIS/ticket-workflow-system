@@ -22,6 +22,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { createActionRouter, createToolRouter } from './chatgpt-action.mjs';
+import { buildActionOpenApi } from './action-openapi.mjs';
 
 // ---------------------------------------------------------------- config ---
 
@@ -237,6 +238,15 @@ const getActionClient = async () => {
 
 const actionClient = await getActionClient();
 const actionRouter = createActionRouter({ token: chatgptActionToken, client: actionClient });
+const { tools: actionTools = [] } = await actionClient.listTools();
+const generatedActionRouters = new Map(
+  actionTools
+    .filter((tool) => tool?.name)
+    .map((tool) => [
+      `/tools/${encodeURIComponent(tool.name)}`,
+      createToolRouter({ token: chatgptActionToken, client: actionClient, toolName: tool.name }),
+    ]),
+);
 const explicitActionRouters = new Map(
   ['list_views', 'list_tasks'].map((toolName) => [
     `/${toolName}`,
@@ -245,6 +255,9 @@ const explicitActionRouters = new Map(
 );
 app.use('/chatgpt', async (req, res, next) => {
   if (req.path === '/rpc') return actionRouter(req, res, next);
+  if (req.method === 'POST' && generatedActionRouters.has(req.path)) {
+    return generatedActionRouters.get(req.path)(req, res, next);
+  }
   if (req.method === 'POST' && explicitActionRouters.has(req.path)) {
     return explicitActionRouters.get(req.path)(req, res, next);
   }
@@ -257,7 +270,7 @@ app.use('/chatgpt', async (req, res, next) => {
     }
   }
   if (req.method === 'GET' && req.path === '/openapi.yaml') {
-    return res.type('text/yaml').send(fs.readFileSync(path.join(process.cwd(), 'openapi.yaml'), 'utf8'));
+    return res.type('application/json').send(JSON.stringify(buildActionOpenApi(actionTools)));
   }
   return next();
 });
