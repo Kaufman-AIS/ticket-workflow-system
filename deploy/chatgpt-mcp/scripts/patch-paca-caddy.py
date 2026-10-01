@@ -5,6 +5,26 @@ import sys
 
 path = Path(sys.argv[1] if len(sys.argv) > 1 else "/opt/ticket-workflow-system/paca/caddy/Caddyfile")
 text = path.read_text()
+
+if "handle @discovery_score" not in text:
+    marker = "\t# -- ChatGPT remote MCP (OAuth gateway) ----------------------------------------"
+    if marker not in text:
+        marker = "\t# -- Web application (SPA) -----------------------------------------------------"
+    if marker not in text:
+        raise SystemExit(f"Caddy route insertion marker not found in {path}")
+    discovery_route = """\t# -- Discovery score webhook ---------------------------------------------------
+\t# The scorer validates X-Webhook-Secret before updating the Paca task.
+\t@discovery_score method POST path /hooks/discovery-score
+\thandle @discovery_score {
+\t\trewrite * /score
+\t\treverse_proxy discovery-scorer:8091
+\t}
+
+"""
+    text = text.replace(marker, discovery_route + marker, 1)
+    path.write_text(text)
+    print(f"added discovery scorer route to {path}")
+
 if "paca-chatgpt-mcp:8771" in text:
     if "/chatgpt/" not in text:
         marker = "\t# -- Web application (SPA) -----------------------------------------------------"
